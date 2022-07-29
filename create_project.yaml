@@ -29,59 +29,43 @@ steps:
       wget https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/stable/openshift-client-linux.tar.gz
       tar -xvf openshift-client-linux.tar.gz
 
-- task: AzureCLI@2
+- task: Bash@3
   displayName: 'Connect to ARO'
   name: ConnectToARO 
   enabled: true
   inputs:
-    azureSubscription: ${{ parameters.azureSubscription }}
-    scriptType: 'bash'
-    addSpnToEnvironment: true
-    scriptLocation: 'inlineScript'
-    useGlobalConfig: true
-    inlineScript: |
+    targetType: 'inline'
+    script: | 
       ./oc login --insecure-skip-tls-verify=true --token='${{ parameters.sa_token }}'  ${{ parameters.apiUrl }}
       ./oc whoami
 
-- task: AzureCLI@2
+- task: Bash@3
   displayName: 'Create project'
   name: CreateProject 
   enabled: true
   inputs:
-    azureSubscription: ${{ parameters.azureSubscription }}
-    scriptType: 'bash'
-    addSpnToEnvironment: true
-    scriptLocation: 'inlineScript'
-    useGlobalConfig: true
-    inlineScript: |
+    targetType: 'inline'
+    script: | 
       ./oc new-project {{ parameters.project_name }}
 
-- task: AzureCLI@2
+- task: Bash@3
   displayName: 'Create groups and assign permissions'
   name: CreateGroupsPermission 
   enabled: true
   inputs:
-    azureSubscription: ${{ parameters.azureSubscription }}
-    scriptType: 'bash'
-    addSpnToEnvironment: true
-    scriptLocation: 'inlineScript'
-    useGlobalConfig: true
-    inlineScript: |
+    targetType: 'inline'
+    script: | 
       ./oc adm groups new ${{ parameters.project_name }}-view
       ./oc adm groups new ${{ parameters.project_name }}-admin
       ./oc adm policy add-role-to-group view ${{ parameters.project_name }}-view -n ${{ parameters.project_name }}-view
       ./oc adm policy add-role-to-group admin ${{ parameters.project_name }}-admin -n ${{ parameters.project_name }}-admin
 
-- task: AzureCLI@2
+- task: Bash@3
   displayName: 'Create Service Account'
   name: DevsServiceAccount 
   enabled: true
   inputs:
-    azureSubscription: ${{ parameters.azureSubscription }}
-    scriptType: 'bash'
-    addSpnToEnvironment: true
-    scriptLocation: 'inlineScript'
-    useGlobalConfig: true
-    inlineScript: |
+    targetType: 'inline'
+    script: | 
       ./oc create serviceaccount ${{ parameters.project_name }}-sa -n ${{ parameters.project_name }}
       ./oc adm policy add-role-to-user admin -z ${{ parameters.project_name }}-sa -n ${{ parameters.project_name }}
