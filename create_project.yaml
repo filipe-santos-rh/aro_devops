@@ -1,0 +1,87 @@
+trigger:
+- main
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  LOCATION: 'eastus'
+
+### Subscription ID to set sub context for automation ###
+parameters:
+  - name: apiUrl
+    type: string
+  - name: sa_token
+    type: string
+  - name: project_name
+    type: string
+  - name: azureSubscription
+    type: string
+
+steps:
+- task: Bash@3
+  name: DownloadOC
+  displayName: 'Download stable oc cli'
+  enabled: true
+  inputs:
+    targetType: 'inline'
+    script: |      
+      wget https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/stable/openshift-client-linux.tar.gz
+      tar -xvf openshift-client-linux.tar.gz
+
+- task: AzureCLI@2
+  displayName: 'Connect to ARO'
+  name: ConnectToARO 
+  enabled: true
+  inputs:
+    azureSubscription: ${{ parameters.azureSubscription }}
+    scriptType: 'bash'
+    addSpnToEnvironment: true
+    scriptLocation: 'inlineScript'
+    useGlobalConfig: true
+    inlineScript: |
+      ./oc login --insecure-skip-tls-verify=true --token='${{ parameters.sa_token }}'  ${{ parameters.apiUrl }}
+      ./oc whoami
+
+- task: AzureCLI@2
+  displayName: 'Create project'
+  name: CreateProject 
+  enabled: true
+  inputs:
+    azureSubscription: ${{ parameters.azureSubscription }}
+    scriptType: 'bash'
+    addSpnToEnvironment: true
+    scriptLocation: 'inlineScript'
+    useGlobalConfig: true
+    inlineScript: |
+      ./oc new-project {{ parameters.project_name }}
+
+- task: AzureCLI@2
+  displayName: 'Create groups and assign permissions'
+  name: CreateGroupsPermission 
+  enabled: true
+  inputs:
+    azureSubscription: ${{ parameters.azureSubscription }}
+    scriptType: 'bash'
+    addSpnToEnvironment: true
+    scriptLocation: 'inlineScript'
+    useGlobalConfig: true
+    inlineScript: |
+      ./oc adm groups new ${{ parameters.project_name }}-view
+      ./oc adm groups new ${{ parameters.project_name }}-admin
+      ./oc adm policy add-role-to-group view ${{ parameters.project_name }}-view -n ${{ parameters.project_name }}-view
+      ./oc adm policy add-role-to-group admin ${{ parameters.project_name }}-admin -n ${{ parameters.project_name }}-admin
+
+- task: AzureCLI@2
+  displayName: 'Create Service Account'
+  name: DevsServiceAccount 
+  enabled: true
+  inputs:
+    azureSubscription: ${{ parameters.azureSubscription }}
+    scriptType: 'bash'
+    addSpnToEnvironment: true
+    scriptLocation: 'inlineScript'
+    useGlobalConfig: true
+    inlineScript: |
+      ./oc create serviceaccount ${{ parameters.project_name }}-sa -n ${{ parameters.project_name }}
+      ./oc adm policy add-role-to-user admin -z ${{ parameters.project_name }}-sa -n ${{ parameters.project_name }}
