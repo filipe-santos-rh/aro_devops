@@ -15,8 +15,6 @@ parameters:
     type: string
   - name: project_name
     type: string
-  - name: azureSubscription
-    type: string
 
 steps:
 - task: Bash@3
@@ -46,7 +44,7 @@ steps:
   inputs:
     targetType: 'inline'
     script: | 
-      ./oc new-project {{ parameters.project_name }}
+      ./oc new-project ${{ parameters.project_name }}
 
 - task: Bash@3
   displayName: 'Create groups and assign permissions'
@@ -57,11 +55,11 @@ steps:
     script: | 
       ./oc adm groups new ${{ parameters.project_name }}-view
       ./oc adm groups new ${{ parameters.project_name }}-admin
-      ./oc adm policy add-role-to-group view ${{ parameters.project_name }}-view -n ${{ parameters.project_name }}-view
-      ./oc adm policy add-role-to-group admin ${{ parameters.project_name }}-admin -n ${{ parameters.project_name }}-admin
+      ./oc adm policy add-role-to-group view ${{ parameters.project_name }}-view -n ${{ parameters.project_name }}
+      ./oc adm policy add-role-to-group admin ${{ parameters.project_name }}-admin -n ${{ parameters.project_name }}
 
 - task: Bash@3
-  displayName: 'Create Service Account'
+  displayName: 'Create Service Account with admin accesss'
   name: DevsServiceAccount 
   enabled: true
   inputs:
